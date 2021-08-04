@@ -17,6 +17,7 @@ file(GLOB UnsupportedTests
   # Clang at O0 does not work out the code referencing the undefined symbol can
   # never be executed
   fp-cmp-7.c
+  compare-fp-3.c
 )
 list(APPEND TestsToSkip ${UnsupportedTests})
 

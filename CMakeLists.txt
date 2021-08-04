@@ -109,6 +109,26 @@ else()
   set(TEST_SUITE_USER_MODE_EMULATION "False")
 endif()
 
+option(TEST_SUITE_MIP_GENERATE "Enable MIP profile generate mode" OFF)
+option(TEST_SUITE_USE_MIP_V3 "Use MIP version 3 for profiling" OFF)
+mark_as_advanced(TEST_SUITE_MIP_GENERATE)
+mark_as_advanced(TEST_SUITE_USE_MIP_V3)
+if(TEST_SUITE_MIP_GENERATE)
+  set(TEST_SUITE_MIP_GENERATE "True")
+  set(machine_profile_instrumentation_flags -fmachine-profile-generate)
+
+  if(TEST_SUITE_USE_MIP_V3)
+    list(APPEND machine_profile_instrumentation_flags -mllvm -mip-version=3)
+  endif()
+
+  # TODO: Add a flag to remove the `__llvm_mipmap` section.
+  list(APPEND CFLAGS   ${machine_profile_instrumentation_flags})
+  list(APPEND CXXFLAGS ${machine_profile_instrumentation_flags})
+  list(APPEND LDFLAGS  ${machine_profile_instrumentation_flags})
+else()
+  set(TEST_SUITE_MIP_GENERATE "False")
+endif()
+
 
 # run type/benchmark size configuration (mostly for SPEC at the moment)
 set(TEST_SUITE_RUN_TYPE "train" CACHE STRING
@@ -233,7 +253,7 @@ if (TEST_SUITE_CXX_ABI STREQUAL "default")
   if (APPLE OR CMAKE_SYSTEM_NAME MATCHES "FreeBSD|Fuchsia")
     set(TEST_SUITE_CXX_ABI_LIBNAME "c++abi")
   else()
-    set(TEST_SUITE_CXX_ABI_LIBNAME "supc++")
+    set(TEST_SUITE_CXX_ABI_LIBNAME "stdc++")
   endif()
 else()
   STRING(REGEX REPLACE "^lib" "" TEST_SUITE_CXX_ABI_LIBNAME ${TEST_SUITE_CXX_ABI})
