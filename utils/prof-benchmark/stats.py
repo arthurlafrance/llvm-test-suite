@@ -13,7 +13,7 @@ import json
 import numpy as np
 
 # save to files in the following format within results/:
-    # box plots: boxplots/box-<opt level>.png, eg boxplots/box-Oz.png for each opt level
+    # box plots: boxplots/box-<opt level>-<metric>.png, eg boxplots/box-Oz.png for each opt level
     # line graphs: graphs/<metric>.png
     # stats text: stats.txt
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    opt_levels = ['Os', 'Oz'] # ['O3', 'Os', 'Oz']
+    opt_levels = ['O3', 'Os', 'Oz']
     prof_methods = ['base', 'llvm', 'mip']
     benchmarks = {}
 
@@ -142,8 +142,6 @@ if __name__ == '__main__':
                 outfile.write(' }, ')
             outfile.write(' }')
 
-    print(avgs)
-
     # line graphs, one per metric, avg only
     graphs_dir = results_dir / 'graphs'
     graphs_dir.mkdir(parents=True, exist_ok=True)
@@ -159,11 +157,28 @@ if __name__ == '__main__':
                 data[i] = avgs[opt_level][prof_method][metric]
 
             # print(metric, prof_method, opt_level, data)
-            plt.plot(data, label=prof_method)
+            plt.semilogy(data, label=prof_method)
 
         # finish + save plot
         plt.legend()
         plt.savefig(graphs_dir / f'{metric}.png')
         plt.clf()
 
+    # line graphs, one per metric, avg only
+    plots_dir = results_dir / 'plots'
+    plots_dir.mkdir(parents=True, exist_ok=True)
+
     # box plots, one per opt-level
+    for opt_level in opt_levels:
+        for metric in Metric.ALL:
+            plt.title(f'{metric} at optimization level {opt_level}')
+            plot_data = []
+
+            for prof_method in prof_methods:
+                data = benchmarks[opt_level][prof_method][metric]
+                plot_data.append(data)
+
+            plt.boxplot(plot_data)
+            # plt.legend()
+            plt.savefig(plots_dir / f'{opt_level}-{metric}.png')
+            plt.clf()

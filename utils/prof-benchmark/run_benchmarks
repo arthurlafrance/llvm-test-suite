@@ -1,0 +1,93 @@
+#!/bin/bash
+
+PROF_METHOD=$1
+OPT_LEVEL=$2
+
+run_benchmarks() {
+    cmake -GNinja -DCMAKE_C_COMPILER=$HOME/local/pika-local/Toolchains/pika-Asserts-11.0.0.xctoolchain/usr/bin/clang $1 -C../cmake/caches/$2.cmake ..
+    ninja MultiSource/Benchmarks/install
+    ~/local/pika11/build/RelWithDebInfo/Darwin-x86_64/toolchain/bin/llvm-lit -j 1 -o results-$PROF_METHOD.json MultiSource/Benchmarks
+    mv results.json ../utils/prof_benchmark/results/$2
+}
+
+run_base_benchmarks() {
+    rm -rf build-base
+    mkdir -p build-base
+    cd build-base
+
+    if [ $OPT_LEVEL == "all" ]
+    then
+        run_benchmarks "" O3
+        run_benchmarks "" Os
+        run_benchmarks "" Oz
+    else
+        run_benchmarks "" $OPT_LEVEL
+    fi
+
+    cd ..
+}
+
+run_llvm_benchmarks() {
+    rm -rf build-llvm
+    mkdir -p build-llvm
+    cd build-llvm
+
+    FLAGS="-DTEST_SUITE_PROFILE_GENERATE=On -DTEST_SUITE_USE_IR_PGO=On"
+
+    if [ $OPT_LEVEL == "all" ]
+    then
+        run_benchmarks "$FLAGS" O3
+        run_benchmarks "$FLAGS" Os
+        run_benchmarks "$FLAGS" Oz
+    else
+        run_benchmarks "$FLAGS" $OPT_LEVEL
+    fi
+
+    cd ..
+}
+
+run_mip_benchmarks() {
+    rm -rf build-mip
+    mkdir -p build-mip
+    cd build-mip
+
+    FLAGS="-DTEST_SUITE_MIP_GENERATE=On -DTEST_SUITE_USE_MIP_V3=On"
+    
+    if [ $OPT_LEVEL == "all" ]
+    then
+        run_benchmarks "$FLAGS" O3
+        run_benchmarks "$FLAGS" Os
+        run_benchmarks "$FLAGS" Oz
+    else
+        run_benchmarks "$FLAGS" $OPT_LEVEL
+    fi
+
+    cd ..
+}
+
+if [ ! $OPT_LEVEL == "O3" ] && [ ! $OPT_LEVEL == "Os" ] && [ ! $OPT_LEVEL == "Oz" ] && [ ! $OPT_LEVEL == "all" ]
+then
+    echo "error: unknown optimization level"
+    exit
+fi
+
+cd ../..
+
+if [ $PROF_METHOD == "all" ]
+then
+    run_base_benchmarks
+    run_llvm_benchmarks
+    run_mip_benchmarks
+elif [ $PROF_METHOD == "base" ] 
+then
+    run_base_benchmarks
+elif [ $PROF_METHOD == "llvm" ]
+then
+    run_llvm_benchmarks
+elif [ $PROF_METHOD == "mip" ]
+then
+    run_mip_benchmarks
+else
+    echo "error: unknown profiling method"
+    exit
+fi
