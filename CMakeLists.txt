@@ -111,8 +111,10 @@ endif()
 
 option(TEST_SUITE_MIP_GENERATE "Enable MIP profile generate mode" OFF)
 option(TEST_SUITE_USE_MIP_V3 "Use MIP version 3 for profiling" OFF)
+option(TEST_SUITE_MIP_ENABLE_CALL_GRAPH "Enable MIP return address sampling (call graph instrumentation)" OFF)
 mark_as_advanced(TEST_SUITE_MIP_GENERATE)
 mark_as_advanced(TEST_SUITE_USE_MIP_V3)
+mark_as_advanced(TEST_SUITE_MIP_ENABLE_CALL_GRAPH)
 if(TEST_SUITE_MIP_GENERATE)
   set(TEST_SUITE_MIP_GENERATE "True")
   set(machine_profile_instrumentation_flags -fmachine-profile-generate)
@@ -121,7 +123,10 @@ if(TEST_SUITE_MIP_GENERATE)
     list(APPEND machine_profile_instrumentation_flags -mllvm -mip-version=3)
   endif()
 
-  # TODO: Add a flag to remove the `__llvm_mipmap` section.
+  if(TEST_SUITE_MIP_ENABLE_CALL_GRAPH)
+    list(APPEND machine_profile_instrumentation_flags -mllvm -enable-return-address-instrumentation=true)
+  endif()
+
   list(APPEND CFLAGS   ${machine_profile_instrumentation_flags})
   list(APPEND CXXFLAGS ${machine_profile_instrumentation_flags})
   list(APPEND LDFLAGS  ${machine_profile_instrumentation_flags})
@@ -129,6 +134,18 @@ else()
   set(TEST_SUITE_MIP_GENERATE "False")
 endif()
 
+option(TEST_SUITE_USE_LTO "Enable LTO" OFF)
+mark_as_advanced(TEST_SUITE_USE_LTO)
+if(TEST_SUITE_USE_LTO)
+  set(TEST_SUITE_MIP_GENERATE "True")
+  set(lto_flags -flto)
+
+  list(APPEND CFLAGS   ${lto_flags})
+  list(APPEND CXXFLAGS ${lto_flags})
+  list(APPEND LDFLAGS  ${lto_flags})
+else()
+  set(TEST_SUITE_MIP_GENERATE "False")
+endif()
 
 # run type/benchmark size configuration (mostly for SPEC at the moment)
 set(TEST_SUITE_RUN_TYPE "train" CACHE STRING
